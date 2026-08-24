@@ -13,8 +13,12 @@ export function cn(...inputs: ClassValue[]) {
  */
 export async function copyText(text: string): Promise<boolean> {
   if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return true;
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fall through to legacy fallback
+    }
   }
   // Fallback for non-secure contexts.
   const ta = document.createElement("textarea");
@@ -22,11 +26,16 @@ export async function copyText(text: string): Promise<boolean> {
   ta.setAttribute("readonly", "");
   ta.style.position = "fixed";
   ta.style.top = "-9999px";
-  document.body.appendChild(ta);
-  ta.select();
+  ta.style.left = "-9999px";
   let ok = false;
   try {
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
     ok = document.execCommand("copy");
+  } catch {
+    ok = false;
   } finally {
     document.body.removeChild(ta);
   }
